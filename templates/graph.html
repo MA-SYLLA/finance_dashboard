@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Graphique par Compte{% endblock %}
+{% block content %}
+
+<h1 class="h3 mb-4 text-gray-800 text-center">Répartition des Montants par Compte</h1>
+
+{% if data %}
+    <table class="table table-bordered w-50 mx-auto text-center">
+        <thead class="table-light">
+            <tr>
+                <th>Compte</th>
+                <th>Montant (€)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, value in data %}
+            <tr>
+                <td>{{ label }}</td>
+                <td>{{ "%.2f"|format(value) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <canvas id="graphCompte" height="100"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('graphCompte').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ labels|tojson }},
+                datasets: [{
+                    label: 'Montant par Compte',
+                    data: {{ values|tojson }},
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+{% else %}
+    <div class="alert alert-warning text-center mt-4">Aucune donnée disponible pour ce graphique.</div>
+{% endif %}
+
+{% endblock %}

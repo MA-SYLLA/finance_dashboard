@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Tableau de Bord{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-column align-items-center justify-content-start" style="min-height: calc(100vh - 150px); margin-top: 30px;">
+
+    <h1 class="h3 mb-5 text-gray-800 text-center">Tableau de bord</h1>
+
+    <!-- Statistiques -->
+    <div class="row text-center mb-4 w-100 justify-content-center">
+        <div class="col-md-2">
+            <div class="alert alert-primary"><h5>Transactions</h5><p>{{ count }}</p></div>
+        </div>
+        <div class="col-md-2">
+            <div class="alert alert-success"><h5>Revenus (€)</h5><p>{{ "%.2f"|format(revenus or 0) }}</p></div>
+        </div>
+        <div class="col-md-2">
+            <div class="alert alert-danger"><h5>Dépenses (€)</h5><p>{{ "%.2f"|format(depenses or 0) }}</p></div>
+        </div>
+        <div class="col-md-2">
+            <div class="alert alert-info"><h5>Solde (€)</h5><p>{{ "%.2f"|format(total or 0) }}</p></div>
+        </div>
+    </div>
+
+    <!-- Formulaire d'import CSV -->
+    <div class="card shadow p-4 w-75">
+        <h4 class="mb-3">Importer un fichier CSV</h4>
+        <form action="/upload" method="POST" enctype="multipart/form-data" class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <select class="form-select" name="type_compte" required>
+                    <option value="">Type de compte</option>
+                    <option value="Compte Courant">Compte Courant</option>
+                    <option value="Livret Épargne">Livret Épargne</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <input class="form-control" type="file" name="file" accept=".csv" required>
+            </div>
+            <div class="col-md-3 text-end">
+                <button class="btn btn-success" type="submit">Importer</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+{% endblock %}

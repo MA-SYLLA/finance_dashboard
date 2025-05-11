@@ -1,0 +1,26 @@
+<nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+    <div class="container-fluid d-flex justify-content-end align-items-center">
+        {% if user %}
+            <span class="me-3 fw-bold text-gray-800 fade-in">Bonjour, {{ user['prenom'] }}</span>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- Petit style CSS pour effet fade-in -->
+<style>
+.fade-in {
+    animation: fadeIn 1s ease-in forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>

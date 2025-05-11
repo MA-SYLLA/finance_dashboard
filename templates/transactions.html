@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+
+<h1 class="h3 mb-4 text-gray-800 text-center">Liste des Transactions</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6 offset-md-3">
+        <form id="search-form" class="d-flex">
+            <input class="form-control me-2" type="search" placeholder="Rechercher une transaction..." id="search-input">
+            <button class="btn btn-outline-primary" type="submit">Rechercher</button>
+            <button class="btn btn-outline-secondary ms-2" type="button" id="reset-search">Reset</button>
+        </form>
+    </div>
+</div>
+
+<div class="container-fluid px-0" style="height: 600px; overflow-y: auto;">
+    <div class="table-responsive px-2">
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>Date</th>
+                    <th>Libellé</th>
+                    <th>Montant (€)</th>
+                    <th>Type de Compte</th>
+                    <th>Catégorie</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="transaction-table">
+                {% for t in transactions %}
+                <tr>
+                    <td class="text-center">{{ t.date.strftime('%d/%m/%Y') }}</td>
+                    <td class="text-center">{{ t.libelle }}</td>
+                    <td class="text-center">{{ "%.2f"|format(t.montant) }}</td>
+                    <td class="text-center">{{ t.type_compte }}</td>
+                    <td class="text-center">{{ t.categorie or '' }}</td>
+                    <td class="text-center">
+                        <form action="{{ url_for('update_category', id=t.id) }}" method="POST" class="d-flex justify-content-center mb-1">
+                            <input type="text" name="categorie" class="form-control form-control-sm me-2 text-center" placeholder="Catégorie" required>
+                            <button class="btn btn-sm btn-primary" type="submit">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </form>
+                        <form action="{{ url_for('delete_transaction', id=t.id) }}" method="POST" onsubmit="return confirm('Confirmer la suppression ?');">
+                            <button class="btn btn-sm btn-danger mt-1" type="submit">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.getElementById('search-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    let input = document.getElementById('search-input').value.toLowerCase();
+    let rows = document.querySelectorAll('#transaction-table tr');
+    rows.forEach(row => {
+        if (row.textContent.toLowerCase().includes(input)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+document.getElementById('reset-search').addEventListener('click', function() {
+    document.getElementById('search-input').value = '';
+    let rows = document.querySelectorAll('#transaction-table tr');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+});
+</script>
+
+{% endblock %}

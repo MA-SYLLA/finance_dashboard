@@ -1,0 +1,29 @@
+# Environnement virtuel
+Lib/
+Scripts/
+Include/
+pyvenv.cfg
+*.pyc
+__pycache__/
+
+# Dossiers d'environnement
+var/
+uploads/
+
+# Configs locales
+.env
+.env.*
+
+# Bases de données locales ou fichiers de prod auto-générés
+*.db
+*.sqlite3
+instance/
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+
+# Autres
+*.log
+*.cache

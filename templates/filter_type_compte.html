@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Filtrer par Compte{% endblock %}
+{% block content %}
+<h2 class="mb-4">Filtrer par Type de Compte</h2>
+
+<form method="post" class="form-inline">
+    <select name="type_compte" class="form-select me-2" required>
+        <option value="">-- Choisissez un type de compte --</option>
+        <option value="Compte Courant">Compte Courant</option>
+        <option value="Livret Épargne">Livret Épargne</option>
+    </select>
+    <button class="btn btn-primary" type="submit">Filtrer</button>
+</form>
+{% endblock %}

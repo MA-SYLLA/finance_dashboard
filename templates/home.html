@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Accueil{% endblock %}
+{% block content %}
+
+<h1 class="h3 mb-4 text-gray-800 text-center mt-4">Tableau de bord</h1>
+
+<!-- Ligne 1 : Cartes -->
+<div class="row mb-4">
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow h-100 py-2 bg-light">
+            <div class="card-body text-center">
+                <h5 class="card-title">Transactions</h5>
+                <p class="h4">{{ total_transactions }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow h-100 py-2 bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Revenus (€)</h5>
+                <p class="h4">{{ total_revenus }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow h-100 py-2 bg-danger text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Dépenses (€)</h5>
+                <p class="h4">{{ total_depenses }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow h-100 py-2 bg-info text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Solde (€)</h5>
+                <p class="h4">{{ solde }}</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Ligne 2 : 3 formulaires -->
+<div class="row">
+
+    <!-- Formulaire Import CSV -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header text-center">
+                <h5>Importer un fichier CSV</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('import_csv') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <select class="form-select" name="type_compte" required>
+                            <option value="">Type de compte</option>
+                            <option value="Compte Courant">Compte Courant</option>
+                            <option value="Livret">Livret</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="file" required>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-success w-100" type="submit">Importer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire Jour de Paie -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header text-center">
+                <h5>Jour de Paie</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('set_jour_paie') }}">
+                    <div class="mb-3">
+                        <input type="number" min="1" max="31" class="form-control text-center" name="jour_paie"
+                               value="{{ user.jour_paie or 1 }}" required>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-primary w-100" type="submit">Définir le jour</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire Découvert autorisé -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header text-center">
+                <h5>Découvert Autorisé</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('set_decouvert') }}">
+                    <div class="mb-3">
+                        <input type="number" step="1" class="form-control text-center" name="montant_decouvert"
+                               value="{{ user.decouvert|int if user.decouvert is not none else 0 }}" required>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-warning w-100" type="submit">Définir le découvert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

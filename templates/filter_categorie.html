@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Filtrer par Catégorie{% endblock %}
+{% block content %}
+<h2 class="mb-4">Filtrer par Catégorie</h2>
+
+<form method="post" class="form-inline">
+    <input type="text" name="categorie" class="form-control me-2" placeholder="Ex: courses, transport..." required>
+    <button class="btn btn-primary" type="submit">Filtrer</button>
+</form>
+{% endblock %}

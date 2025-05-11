@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Revenus par Catégorie{% endblock %}
+{% block content %}
+
+<h1 class="h3 mb-4 text-gray-800 text-center">Répartition des Revenus par Catégorie</h1>
+
+<div class="d-flex justify-content-center align-items-center flex-wrap mb-4">
+    <form method="get" class="d-flex align-items-center flex-wrap">
+        <div class="form-group mx-2 text-center">
+            <label for="start_date">De :</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+        </div>
+        <div class="form-group mx-2 text-center">
+            <label for="end_date">À :</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+        </div>
+        <button type="submit" class="btn btn-primary mx-2 mt-4">Filtrer</button>
+    </form>
+    <a href="{{ url_for('graph_categorie_revenus') }}" class="btn btn-secondary mx-2 mt-4">Réinitialiser les filtres</a>
+</div>
+
+{% if labels and values %}
+<canvas id="graphRevenus" width="400" height="200"></canvas>
+
+<p class="text-center mt-3 text-muted">
+    Ce graphique affiche la somme des **revenus (montants positifs)** par catégorie, sur la période sélectionnée.
+</p>
+
+<ul class="list-group text-center">
+    {% for label, value in zip(labels, values) %}
+    <li class="list-group-item">{{ label }} : {{ value }} €</li>
+    {% endfor %}
+</ul>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('graphRevenus').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ labels|tojson }},
+        datasets: [{
+            label: 'Revenus (€)',
+            data: {{ values|tojson }},
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% else %}
+<div class="alert alert-warning text-center">Aucun revenu disponible pour ce graphique (vérifiez la période).</div>
+{% endif %}
+
+{% endblock %}

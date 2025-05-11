@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Filtrer par Date{% endblock %}
+{% block content %}
+<h2 class="mb-4">Filtrer par Période</h2>
+
+<form method="post">
+    <div class="row g-2">
+        <div class="col-md-4">
+            <input type="date" name="start_date" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <input type="date" name="end_date" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary" type="submit">Filtrer</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
