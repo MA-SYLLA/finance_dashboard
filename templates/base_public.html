@@ -9,70 +9,83 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* Zoom lent sur l'image de fond */
         body {
-            background: url('https://images.unsplash.com/photo-1614092431397-a2730e0195f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80') no-repeat center center;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-image: url("{{ url_for('static', filename='img/background.jpg') }}");
             background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             animation: zoomBackground 20s infinite alternate ease-in-out;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         @keyframes zoomBackground {
-            0% {
-                background-size: 100%;
-            }
-            100% {
-                background-size: 105%;
-            }
+            0% { background-size: 100%; }
+            100% { background-size: 105%; }
         }
 
         .overlay {
-            background: rgba(0, 0, 0, 0.6);
-            height: 100%;
-            width: 100%;
+            background-color: rgba(0,0,0,0.6);
             position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .content {
-            position: relative;
-            z-index: 2;
+            top: 0; left: 0;
+            width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-            padding: 20px;
-            text-align: center;
+            z-index: 0;
         }
 
         .form-container {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 30px;
-            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 2rem;
+            border-radius: 1rem;
+            color: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+            max-width: 420px;
             width: 100%;
-            max-width: 400px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -70%);
+            margin: 100px auto;
+            z-index: 1;
+        }
+
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+        }
+
+        .form-control::placeholder {
             color: #333;
         }
 
         .btn-custom {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 30px;
             padding: 10px 30px;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             transition: all 0.3s ease-in-out;
         }
 
         .btn-custom:hover {
-            transform: translateY(-3px);
-            opacity: 0.9;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .auth-links a {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .auth-links a:hover {
+            color: #e0e0e0;
         }
     </style>
 </head>
