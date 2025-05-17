@@ -210,6 +210,15 @@ def update_category(id):
 
     return redirect(url_for('transactions'))
 
+@app.route('/transactions/clear_category/<int:id>')
+def clear_category(id):
+    transaction = Transaction.query.get_or_404(id)
+    transaction.categorie = None
+    db.session.commit()
+    flash("Catégorie supprimée", "success")
+    return redirect(url_for('transactions'))
+
+
 @app.route('/import_csv', methods=['POST'])
 def import_csv():
     if 'user' not in session:

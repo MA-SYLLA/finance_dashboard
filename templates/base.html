@@ -13,37 +13,28 @@
 
     <!-- Custom styles -->
     <link href="{{ url_for('static', filename='css/sb-admin-2.min.css') }}" rel="stylesheet">
-
-    <!-- Footer fixé bas écran -->
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-
-        footer {
-            background-color: #fff;
-            text-align: center;
-            padding: 1rem 0;
-            margin-top: auto;
-        }
-    </style>
 </head>
 
 <body id="page-top">
 
 <div id="wrapper">
 
+    <!-- Sidebar -->
     {% include 'sidebar.html' %}
+    <!-- End of Sidebar -->
 
-    <div id="content-wrapper">
+    <!-- Content Wrapper -->
+    <div id="content-wrapper" class="d-flex flex-column">
 
-        <!-- Contenu principal -->
+        <!-- Main Content -->
         <div id="content">
 
+            <!-- Navbar -->
             {% include 'navbar.html' %}
+            <!-- End of Navbar -->
 
-            <main class="container-fluid">
+            <!-- Page Content -->
+            <div class="container-fluid py-3">
 
                 <!-- Messages flash -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -60,15 +51,23 @@
                 {% endwith %}
 
                 {% block content %}{% endblock %}
-            </main>
+            </div>
+            <!-- End Page Content -->
+
         </div>
 
-        <!-- Footer toujours en bas de la page -->
-        <footer>
-            © Mon Tableau de Bord Financier 2025
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white mt-auto">
+            <div class="container my-auto">
+                <div class="text-center my-auto">
+                    <span>© Mon Tableau de Bord Financier 2025</span>
+                </div>
+            </div>
         </footer>
+        <!-- End Footer -->
 
     </div>
+
 </div>
 
 <!-- Scripts -->
