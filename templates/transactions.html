@@ -2,6 +2,17 @@
 {% block title %}Transactions{% endblock %}
 {% block content %}
 
+<style>
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #212529; /* couleur .table-dark */
+    color: white;
+    vertical-align: middle;
+  }
+</style>
+
 <h1 class="h3 mb-4 text-gray-800 text-center">Liste des Transactions</h1>
 
 <div class="row mb-4">
@@ -14,36 +25,55 @@
     </div>
 </div>
 
-<div class="container-fluid px-0" style="height: 600px; overflow-y: auto;">
-    <div class="table-responsive px-2">
-        <table class="table table-bordered table-striped table-hover">
-            <thead class="table-dark text-center">
+<div class="container-fluid px-0" style="max-height: 65vh; overflow-y: auto;">
+        <table class="table table-bordered table-striped table-hover w-100 align-middle">
+            <thead class="table-dark text-center align-middle">
                 <tr>
-                    <th>Date</th>
-                    <th>Libellé</th>
-                    <th>Montant (€)</th>
-                    <th>Type de Compte</th>
-                    <th>Catégorie</th>
-                    <th>Actions</th>
+                    <th class="text-center align-middle" style="width: 10%;">Date</th>
+                    <th class="text-center align-middle" style="width: 45%;">Libellé</th>
+                    <th class="text-center align-middle" style="width: 5%;">Montant (€)</th>
+                    <th class="text-center align-middle" style="width: 10%;">Type de Compte</th>
+                    <th class="text-center align-middle" style="width: 10%;">Catégorie</th>
+                    <th class="text-center align-middle" style="width: 15%;">Ajout / Suppression d'une Catégorie</th>
+                    <th class="text-center align-middle" style="width: 5%;">Supprimer une transaction</th>
                 </tr>
             </thead>
             <tbody id="transaction-table">
                 {% for t in transactions %}
                 <tr>
-                    <td class="text-center">{{ t.date.strftime('%d/%m/%Y') }}</td>
-                    <td class="text-center">{{ t.libelle }}</td>
-                    <td class="text-center">{{ "%.2f"|format(t.montant) }}</td>
-                    <td class="text-center">{{ t.type_compte }}</td>
-                    <td class="text-center">{{ t.categorie or '' }}</td>
+                    <td class="text-center" title="{{ t.date }}">{{ t.date.strftime('%d/%m/%Y') }}</td>
+                    <td class="text-truncate text-center" style="max-width: 300px;" title="{{ t.libelle | e }}">{{ t.libelle }}</td>
+                    <td class="text-center" title="{{ t.montant }}">{{ "%.2f"|format(t.montant) }}</td>
+                    <td class="text-center" title="{{ t.type_compte | e }}">{{ t.type_compte }}</td>
+                    <td class="text-center" title="{{ t.categorie | e }}">{{ t.categorie or '' }}</td>
+
                     <td class="text-center">
-                        <form action="{{ url_for('update_category', id=t.id) }}" method="POST" class="d-flex justify-content-center mb-1">
-                            <input type="text" name="categorie" class="form-control form-control-sm me-2 text-center" placeholder="Catégorie" required>
-                            <button class="btn btn-sm btn-primary" type="submit">
+                        <form method="POST"
+                              action="{{ url_for('update_category', id=t.id) }}"
+                              class="d-flex justify-content-center align-items-center w-100 gap-1">
+                            <input type="text"
+                                   name="categorie"
+                                   class="form-control form-control-sm text-center"
+                                   placeholder="Catégorie"
+                                   required
+                                   style="min-width: 120px; flex: 1 1 auto;"
+                                   title="Ajouter une catégorie">
+
+                            <button class="btn btn-sm btn-success" type="submit" title="Valider la catégorie">
                                 <i class="fas fa-check"></i>
                             </button>
+
+                            <a href="{{ url_for('clear_category', id=t.id) }}"
+                               class="btn btn-sm btn-warning"
+                               title="Supprimer la catégorie">
+                                <i class="fas fa-eraser"></i>
+                            </a>
                         </form>
-                        <form action="{{ url_for('delete_transaction', id=t.id) }}" method="POST" onsubmit="return confirm('Confirmer la suppression ?');">
-                            <button class="btn btn-sm btn-danger mt-1" type="submit">
+                    </td>
+
+                    <td class="text-center">
+                        <form method="POST" action="{{ url_for('delete_transaction', id=t.id) }}" onsubmit="return confirm('Supprimer cette transaction ?');">
+                            <button class="btn btn-sm btn-danger" type="submit" title="Supprimer cette transaction">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </form>
@@ -52,7 +82,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
 </div>
 
 <script>
