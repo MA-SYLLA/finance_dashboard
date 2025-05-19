@@ -2,12 +2,13 @@ from flask import Flask, render_template, redirect, url_for, request, session, f
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from datetime import date
 import os
+import pandas as pd
 
-from models import db, User, Transaction
+from models import db, User, Transaction, DatePaieConfirmee
 from process_csv import process_csv
-from utils import get_solde_info
-
+from utils import get_solde_info, get_periode_budgetaire, detecter_dates_paie
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -29,32 +30,117 @@ def landing():
 @app.route('/home')
 def home():
     if 'user' not in session:
-        flash('Veuillez vous connecter.', 'warning')
         return redirect(url_for('login'))
 
     user_email = session['user']['email']
     user = User.query.filter_by(email=user_email).first()
-    transactions = Transaction.query.filter_by(user_id=user.id).all()
+
+    filter_type = request.args.get('filter_type')
+    filter_value = request.args.get('filter_value')
+
+    today = date.today()
+    start_date = end_date = None
+
+    if filter_type == 'day' and filter_value:
+        try:
+            selected_date = datetime.strptime(filter_value, "%Y-%m-%d").date()
+            start_date = end_date = selected_date
+        except:
+            flash("Date invalide", "warning")
+            return redirect(url_for('home'))
+
+    elif filter_type == 'month' and filter_value:
+        try:
+            year, month = map(int, filter_value.split('-'))
+            mois_cible = f"{year}-{month:02d}"
+            confirmée = DatePaieConfirmee.query.filter_by(user_id=user.id, mois=mois_cible).first()
+
+            if confirmée:
+                start_date = confirmée.date_paie
+                prochaine = DatePaieConfirmee.query.filter(
+                    DatePaieConfirmee.user_id == user.id,
+                    DatePaieConfirmee.date_paie > start_date
+                ).order_by(DatePaieConfirmee.date_paie.asc()).first()
+
+                if prochaine:
+                    end_date = prochaine.date_paie - timedelta(days=1)
+                else:
+                    end_date = start_date + timedelta(days=30)
+            else:
+                start_date = date(year, month, 1)
+                end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+        except:
+            flash("Mois invalide", "warning")
+            return redirect(url_for('home'))
+
+    elif filter_type == 'year' and filter_value:
+        try:
+            year = int(filter_value)
+            confirmées = DatePaieConfirmee.query.filter(
+                DatePaieConfirmee.user_id == user.id,
+                DatePaieConfirmee.date_paie >= date(year, 1, 1),
+                DatePaieConfirmee.date_paie <= date(year, 12, 31)
+            ).order_by(DatePaieConfirmee.date_paie.asc()).all()
+
+            if confirmées:
+                start_date = confirmées[0].date_paie
+                dernière = confirmées[-1].date_paie
+                end_date = dernière + timedelta(days=30)
+            else:
+                start_date = date(year, 1, 1)
+                end_date = date(year, 12, 31)
+
+        except:
+            flash("Année invalide", "warning")
+            return redirect(url_for('home'))
+
+    else:
+        confirmées = DatePaieConfirmee.query.filter_by(user_id=user.id).order_by(DatePaieConfirmee.date_paie).all()
+        for i, d in enumerate(confirmées):
+            if d.date_paie <= today:
+                if i + 1 < len(confirmées):
+                    next_date = confirmées[i + 1].date_paie
+                    if today < next_date:
+                        start_date = d.date_paie
+                        end_date = next_date - timedelta(days=1)
+                        break
+                else:
+                    start_date = d.date_paie
+                    end_date = d.date_paie + timedelta(days=30)
+                    break
+
+        if not start_date:
+            start_date = today.replace(day=1)
+            end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    transactions = Transaction.query.filter(
+        Transaction.user_id == user.id,
+        Transaction.type_compte == "Compte Courant",
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    ).all()
 
     total_transactions = len(transactions)
     total_revenus = sum(t.montant for t in transactions if t.montant > 0)
-    total_depenses = sum(t.montant for t in transactions if t.montant < 0)
-    solde = total_revenus + total_depenses
-    decouvert = user.decouvert if user else 0
+    total_depenses = abs(sum(t.montant for t in transactions if t.montant < 0))
+    solde = total_revenus - total_depenses
+    decouvert = user.decouvert or 0
     solde_disponible = solde + decouvert
 
-    solde_info = get_solde_info(user)
-
-    return render_template('home.html',
-                           total_transactions=total_transactions,
-                           total_revenus=round(total_revenus, 2),
-                           total_depenses=round(total_depenses, 2),
-                           solde=round(solde, 2),
-                           decouvert=round(decouvert, 2),
-                           solde_disponible=round(solde_disponible, 2),
-                           solde_info=solde_info,
-                           user=user,
-                           active_page='home')
+    return render_template(
+        'home.html',
+        total_transactions=total_transactions,
+        total_revenus=round(total_revenus, 2),
+        total_depenses=round(total_depenses, 2),
+        solde=round(solde, 2),
+        decouvert=round(decouvert, 2),
+        solde_disponible=round(solde_disponible, 2),
+        user=user,
+        active_page='home',
+        start_date=start_date,
+        end_date=end_date
+    )
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -237,9 +323,60 @@ def import_csv():
         return redirect(url_for('home'))
 
     process_csv(file.stream, type_compte, user.id)
+    
+    from utils import detecter_dates_a_valider
+
+    dates_suggerees = detecter_dates_a_valider(user.id)
+
+    if dates_suggerees:
+        session['dates_suggerees'] = [{
+            "mois": d["mois"],
+            "date": d["date"].strftime('%Y-%m-%d'),
+            "message": d["message"]
+        } for d in dates_suggerees]
 
     flash('Fichier CSV importé avec succès.', 'success')
     return redirect(url_for('home'))
+
+@app.route('/valider_paie', methods=['POST'])
+def valider_paie():
+    if 'user' not in session:
+        flash("Veuillez vous connecter.", "warning")
+        return redirect(url_for('login'))
+
+    user_email = session['user']['email']
+    user = User.query.filter_by(email=user_email).first()
+
+    mois = request.form.get('mois')
+    date_str = request.form.get('date_paie')
+
+    if not mois or not date_str:
+        flash("Données manquantes.", "danger")
+        return redirect(url_for('home'))
+
+    try:
+        date_paie = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Format de date invalide.", "danger")
+        return redirect(url_for('home'))
+
+    # Vérifie si la date est déjà confirmée
+    existe = DatePaieConfirmee.query.filter_by(user_id=user.id, mois=mois).first()
+    if not existe:
+        nouvelle = DatePaieConfirmee(user_id=user.id, mois=mois, date_paie=date_paie)
+        db.session.add(nouvelle)
+        db.session.commit()
+
+    # Nettoie la date validée de la session
+    if 'dates_suggerees' in session:
+        restantes = [d for d in session['dates_suggerees'] if d['mois'] != mois]
+        if restantes:
+            session['dates_suggerees'] = restantes
+        else:
+            session.pop('dates_suggerees', None)
+
+    return redirect(url_for('home'))
+
 
 @app.route('/set_decouvert', methods=['POST'])  
 def set_decouvert():
@@ -261,49 +398,82 @@ def set_decouvert():
 
     return redirect(url_for('home'))
 
-@app.route('/set_jour_paie', methods=['POST'])
-def set_jour_paie():
-    if 'user' not in session:
-        flash("Veuillez vous connecter", "warning")
-        return redirect(url_for('login'))
-
-    user_email = session['user']['email']
-    user = User.query.filter_by(email=user_email).first()
-
-    jour_paie = request.form.get('jour_paie', '').strip()
-    if jour_paie.isdigit():
-        jour = int(jour_paie)
-        if 1 <= jour <= 31:
-            user.jour_paie = jour
-            db.session.commit()
-            flash("Jour de paie mis à jour.", "success")
-        else:
-            flash("Le jour de paie doit être compris entre 1 et 31.", "danger")
-    else:
-        flash("Valeur invalide pour le jour de paie.", "danger")
-
-    return redirect(url_for('home'))
-
 @app.route('/graph_par_compte')
 def graph_par_compte():
     if 'user' not in session:
         flash('Veuillez vous connecter.', 'warning')
         return redirect(url_for('login'))
 
+    # Récupération de l'utilisateur
     user_email = session['user']['email']
     user = User.query.filter_by(email=user_email).first()
     solde_info = get_solde_info(user)
 
-    # Récupérer les données pour le graphique par type de compte
-    transactions = Transaction.query.filter_by(user_id=user.id).all()
-    comptes = set(t.type_compte for t in transactions)
-    labels = list(comptes)  # Les types de comptes seront nos labels
-    values = [sum(t.montant for t in transactions if t.type_compte == compte) for compte in comptes]
+    # Lecture des filtres date
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
 
-    # Préparer les données pour le template
-    data = list(zip(labels, values))
+    # Base de la requête
+    query = Transaction.query.filter_by(user_id=user.id)
 
-    return render_template('graph.html', labels=labels, values=values, data=data, solde_info=solde_info, active_page='graph_par_compte')
+    # Application du filtre date début
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            query = query.filter(Transaction.date >= start_date)
+        except ValueError:
+            flash("Date de début invalide", "warning")
+
+    # Application du filtre date fin
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            query = query.filter(Transaction.date <= end_date)
+        except ValueError:
+            flash("Date de fin invalide", "warning")
+
+    # Exécution de la requête
+    transactions = query.all()
+
+    # 🔍 Debug : transactions filtrées
+    print(">>> Filtres actifs :")
+    print("Start:", start_date_str, "| End:", end_date_str)
+    print(">>> Transactions filtrées :")
+    for t in transactions:
+        print(f"- {t.date} | {t.type_compte} | {t.montant}")
+
+    # Agrégation des montants par compte (sans retraits pour le livrets)
+    comptes = {}
+    for t in transactions:
+        compte = t.type_compte
+        montant = t.montant
+    
+        comptes[compte] = comptes.get(compte, 0) + montant
+        
+    # 👉 Appliquer la règle spécifique au livret : pas de négatif
+    if 'Livret' in comptes and comptes['Livret'] < 0:
+         comptes['Livret'] = 0
+
+    # 🔍 Debug : totaux par compte
+    print(">>> Totaux par compte :")
+    for compte, total in comptes.items():
+        print(f"{compte}: {total:.2f}")
+
+    # Données pour le graphique et le tableau
+    labels = list(comptes.keys())
+    values = [round(v, 2) for v in comptes.values()]
+    data = list(comptes.items())
+
+    return render_template(
+        'graph.html',
+        labels=labels,
+        values=values,
+        data=data,
+        solde_info=solde_info,
+        start_date=start_date_str,
+        end_date=end_date_str,
+        active_page='graph_par_compte'
+    )
 
 @app.route('/graph_categorie_depenses')
 def graph_categorie_depenses():
