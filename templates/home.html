@@ -4,7 +4,125 @@
 
 <h1 class="h3 mb-4 text-gray-800 text-center mt-4">Tableau de bord</h1>
 
-<!-- Ligne 1 : Cartes -->
+<!-- 📦 Bloc 3 formulaires -->
+<div class="row mb-4 d-flex align-items-stretch">
+
+    <!-- 📂 Import CSV -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header text-center">
+                <strong>📂 Import Fichier CSV</strong>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('import_csv') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="file" accept=".csv" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <select name="type_compte" class="form-select" required>
+                            <option value="">Type de compte</option>
+                            <option value="Compte Courant">Compte Courant</option>
+                            <option value="Livret">Livret</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Importer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+  
+    <!-- 📅 Dates de paie -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header text-center">
+                <strong>📅 Dates à valider</strong>
+            </div>
+            {% if session.get('dates_suggerees') and session['dates_suggerees']|length > 0 %}
+                <div class="card-body p-2" style="max-height: 220px; overflow-y: auto;">
+                    {% for d in session['dates_suggerees'] %}
+                        <form method="POST" action="{{ url_for('valider_paie') }}" class="d-flex mb-2">
+                            <input type="hidden" name="mois" value="{{ d['mois'] }}">
+                            <input type="date" name="date_paie" class="form-control me-2"
+                                   value="{{ d['date'] }}" required>
+                            <button class="btn btn-success" type="submit">✔</button>
+                        </form>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="card-body text-center text-muted">
+                    Aucune date à valider
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 💸 Découvert autorisé -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header text-center">
+                <strong>💸 Découvert autorisé</strong>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('set_decouvert') }}">
+                    <div class="mb-3">
+                        <input type="number" name="montant_decouvert" step="1" class="form-control text-center"
+                               value="{{ user.decouvert|int if user.decouvert is not none else 0 }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Mettre à jour</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 🔍 Filtres centrés et alignés -->
+<form method="get" class="mb-4">
+    <div class="d-flex justify-content-center align-items-end flex-wrap gap-3">
+
+        <!-- Label Filtrer par -->
+        <div class="form-group mb-0 text-nowrap">
+            <label for="filter_type" class="form-label mb-0">Filtrer par :</label>
+        </div>
+
+        <!-- Sélecteur Type -->
+        <div class="form-group mb-0">
+            <select id="filter_type" name="filter_type" class="form-select">
+                <option value="day">Jour</option>
+                <option value="month" selected>Mois</option>
+                <option value="year">Année</option>
+            </select>
+        </div>
+
+        <!-- Valeur de filtre (date, mois ou année) -->
+        <div class="form-group mb-0" id="filter_input_container">
+            <input type="month" name="filter_value" class="form-control" id="filter_value">
+        </div>
+
+        <!-- Bouton filtrer -->
+        <button type="submit" class="btn btn-primary">Filtrer</button>
+
+        <!-- Réinitialiser -->
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Réinitialiser</a>
+    </div>
+</form>
+
+{% if start_date and end_date %}
+    <p class="text-muted mb-4 text-center">
+        📅 Période affichée :
+        <strong>{{ start_date.strftime('%d/%m/%Y') }}</strong>
+        →
+        <strong>{{ end_date.strftime('%d/%m/%Y') }}</strong>
+    </p>
+{% endif %}
+
+{% if total_transactions == 0 %}
+    <div class="alert alert-warning text-center mb-4">
+        Aucune transaction trouvée pour cette période.
+    </div>
+{% endif %}
+
+<!-- 💳 Cartes -->
 <div class="row mb-4">
 
     <div class="col-md-3 mb-3">
@@ -45,75 +163,24 @@
 
 </div>
 
-<!-- Ligne 2 : 3 formulaires -->
-<div class="row">
+<script>
+    const filterType = document.getElementById("filter_type");
+    const filterContainer = document.getElementById("filter_input_container");
 
-    <!-- Formulaire Import CSV -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header text-center">
-                <h5>Importer un fichier CSV</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('import_csv') }}" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <select class="form-select" name="type_compte" required>
-                            <option value="">Type de compte</option>
-                            <option value="Compte Courant">Compte Courant</option>
-                            <option value="Livret">Livret</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <input type="file" class="form-control" name="file" required>
-                    </div>
-                    <div class="text-center">
-                        <button class="btn btn-success w-100" type="submit">Importer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    filterType.addEventListener("change", () => {
+        const type = filterType.value;
+        let input = "";
 
-    <!-- Formulaire Jour de Paie -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header text-center">
-                <h5>Jour de Paie</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('set_jour_paie') }}">
-                    <div class="mb-3">
-                        <input type="number" min="1" max="31" class="form-control text-center" name="jour_paie"
-                               value="{{ user.jour_paie or 1 }}" required>
-                    </div>
-                    <div class="text-center">
-                        <button class="btn btn-primary w-100" type="submit">Définir le jour</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+        if (type === "day") {
+            input = '<input type="date" name="filter_value" class="form-control" id="filter_value">';
+        } else if (type === "month") {
+            input = '<input type="month" name="filter_value" class="form-control" id="filter_value">';
+        } else if (type === "year") {
+            input = '<input type="number" name="filter_value" min="2000" max="2100" class="form-control" id="filter_value">';
+        }
 
-    <!-- Formulaire Découvert autorisé -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header text-center">
-                <h5>Découvert Autorisé</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('set_decouvert') }}">
-                    <div class="mb-3">
-                        <input type="number" step="1" class="form-control text-center" name="montant_decouvert"
-                               value="{{ user.decouvert|int if user.decouvert is not none else 0 }}" required>
-                    </div>
-                    <div class="text-center">
-                        <button class="btn btn-warning w-100" type="submit">Définir le découvert</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-</div>
+        filterContainer.innerHTML = input;
+    });
+</script>
 
 {% endblock %}
