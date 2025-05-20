@@ -215,7 +215,7 @@ def transactions():
 
     user_email = session['user']['email']
     user = User.query.filter_by(email=user_email).first()
-    transactions = Transaction.query.filter_by(user_id=user.id).all()
+    transactions = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
 
     solde_info = get_solde_info(user)
 
@@ -508,7 +508,7 @@ def graph_categorie_depenses():
     categories = set(t.categorie for t in transactions if t.categorie)
     labels = list(categories)
     values = [sum(t.montant for t in transactions if t.categorie == cat) for cat in categories]
-    data = list(zip(labels, values))
+    data = sorted(zip(labels, values), key=lambda x: x[0].lower())
 
     return render_template(
         'graph_categorie_depenses.html',
@@ -569,65 +569,6 @@ def graph_categorie_revenus():
         zip=zip
     )
 
-@app.route('/graph_solde')
-def graph_solde():
-    if 'user' not in session:
-        flash('Veuillez vous connecter.', 'warning')
-        return redirect(url_for('login'))
-
-    user_email = session['user']['email']
-    user = User.query.filter_by(email=user_email).first()
-
-    start_date_str = request.args.get('start_date')
-    end_date_str = request.args.get('end_date')
-    time_scale = request.args.get('time_scale', 'month')
-    cumul = request.args.get('cumul') == 'true'
-
-    solde_info = get_solde_info(user)
-
-    query = Transaction.query.filter_by(user_id=user.id)
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            query = query.filter(Transaction.date >= start_date)
-        except ValueError:
-            flash("Date de début invalide", "warning")
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            query = query.filter(Transaction.date <= end_date)
-        except ValueError:
-            flash("Date de fin invalide", "warning")
-
-    transactions = query.order_by(Transaction.date).all()
-
-    periodes = {}
-    for t in transactions:
-        if time_scale == 'day':
-            key = t.date.strftime('%Y-%m-%d')
-        elif time_scale == 'year':
-            key = t.date.strftime('%Y')
-        else:
-            key = t.date.strftime('%Y-%m')
-        periodes[key] = periodes.get(key, 0) + t.montant
-
-    labels = sorted(periodes.keys())
-    values = []
-    cumulatif = 0
-    for k in labels:
-        cumulatif += periodes[k]
-        values.append(round(cumulatif if cumul else periodes[k], 2))
-
-    return render_template(
-        'graph_solde.html',
-        labels=labels,
-        values=values,
-        time_scale=time_scale,
-        cumul=cumul,
-        solde_info=solde_info,
-        active_page='graph_solde',
-        page_title='Évolution du Solde Calendrier'
-    )
 
 @app.route('/graph_solde_paie')
 def graph_solde_paie():
@@ -635,54 +576,75 @@ def graph_solde_paie():
         flash('Veuillez vous connecter.', 'warning')
         return redirect(url_for('login'))
 
-    # On ne récupère plus date_paie depuis l'URL
-    date_paie_str = None
-    start_date_str = request.args.get('start_date')
-    end_date_str = request.args.get('end_date')
-    time_scale = request.args.get('time_scale', 'month')
-    cumul = request.args.get('cumul') == 'true'
-
-    # Récupération utilisateur
     user_email = session['user']['email']
     user = User.query.filter_by(email=user_email).first()
 
-    # Infos solde dynamiques (utilise user.jour_paie automatiquement)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    time_scale = request.args.get('time_scale', 'day')  # par défaut : jour
+    cumul = True  # on est toujours en cumulatif réel ici
+
     solde_info = get_solde_info(user)
 
-    # Requête transactions avec filtres
-    query = Transaction.query.filter_by(user_id=user.id)
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            query = query.filter(Transaction.date >= start_date)
-        except ValueError:
-            flash("Date de début invalide", "warning")
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            query = query.filter(Transaction.date <= end_date)
-        except ValueError:
-            flash("Date de fin invalide", "warning")
+    # Récupère tous les cycles confirmés
+    confirmed = DatePaieConfirmee.query.filter_by(user_id=user.id).order_by(DatePaieConfirmee.date_paie).all()
 
-    transactions = query.order_by(Transaction.date).all()
+    cycles = []
+    for i, d in enumerate(confirmed):
+        start = d.date_paie
+        end = confirmed[i + 1].date_paie - timedelta(days=1) if i + 1 < len(confirmed) else start + timedelta(days=30)
 
-    # Agrégation par période selon time_scale
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                if end < start_date:
+                    continue
+            except ValueError:
+                flash("Date de début invalide", "warning")
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                if start > end_date:
+                    continue
+            except ValueError:
+                flash("Date de fin invalide", "warning")
+
+        cycles.append((start, end))
+
+    # Transactions triées pour tout le calcul
+    all_tx = Transaction.query.filter_by(user_id=user.id, type_compte="Compte Courant") \
+        .order_by(Transaction.date.asc()).all()
+
+    # Déduire la plus petite date analysée
+    min_date = cycles[0][0] if cycles else None
+
+    # 1. Calcul du solde initial AVANT le premier cycle
+    solde = 0
+    if min_date:
+        solde_avant = sum(t.montant for t in all_tx if t.date < min_date)
+        solde = solde_avant
+
+    # 2. Construit le solde réel jour par jour
+    courbe = {}  # {date: solde}
+    for t in all_tx:
+        if not cycles or not any(start <= t.date <= end for (start, end) in cycles):
+            continue
+        solde += t.montant
+        courbe[t.date] = solde  # on écrase la valeur par date (1 seul point par jour)
+
+    # 3. Agrégation selon time_scale
     periodes = {}
-    for t in transactions:
+    for date_point, valeur in courbe.items():
         if time_scale == "day":
-            key = t.date.strftime('%Y-%m-%d')
+            key = date_point.strftime('%Y-%m-%d')
         elif time_scale == "year":
-            key = t.date.strftime('%Y')
+            key = date_point.strftime('%Y')
         else:
-            key = t.date.strftime('%Y-%m')
-        periodes[key] = periodes.get(key, 0) + t.montant
+            key = date_point.strftime('%Y-%m')
+        periodes[key] = valeur  # pas de cumul manuel ici, valeur du solde déjà construite
 
     labels = sorted(periodes.keys())
-    values = []
-    cumulatif = 0
-    for k in labels:
-        cumulatif += periodes[k]
-        values.append(round(cumulatif if cumul else periodes[k], 2))
+    values = [round(periodes[k], 2) for k in labels]
 
     return render_template(
         'graph_solde_paie.html',
@@ -692,10 +654,54 @@ def graph_solde_paie():
         start_date=start_date_str,
         end_date=end_date_str,
         time_scale=time_scale,
-        cumul=cumul,
         active_page='graph_solde_paie',
-        page_title='Évolution du Solde Cycle de Paie'
+        page_title='Évolution du Solde Bancaire (Cycle de Paie)'
     )
+    
+@app.route('/graph_solde_interactif')
+def graph_solde_interactif():
+    if 'user' not in session:
+        flash('Veuillez vous connecter.', 'warning')
+        return redirect(url_for('login'))
+
+    from collections import OrderedDict
+
+    user_email = session['user']['email']
+    user = User.query.filter_by(email=user_email).first()
+    solde_info = get_solde_info(user)
+
+    # Toutes les transactions Compte Courant triées par date
+    transactions = Transaction.query.filter_by(
+        user_id=user.id,
+        type_compte="Compte Courant"
+    ).order_by(Transaction.date.asc()).all()
+
+    # Solde initial
+    solde = 0
+    data = []
+    for t in transactions:
+        solde += t.montant
+        print(f"{t.date} | {t.montant:+} € | solde = {solde:.2f} €")
+        data.append({
+            "date": t.date.strftime('%Y-%m-%d'),
+            "solde": round(solde, 2)
+        })
+        
+    # Après avoir généré `data = [...]` avec les points (date, solde)
+    if data:
+        solde_info["solde_reel"] = data[-1]["solde"]
+    else:
+        solde_info["solde_reel"] = 0
+
+    return render_template(
+        'graph_solde_interactif.html',
+        data=data,
+        solde_info=solde_info,
+        solde_reel=round(solde, 2),  # 👈 ajoute cette ligne
+        active_page='graph_solde_interactif'
+    )
+    
+
 
 with app.app_context():
     db.create_all()

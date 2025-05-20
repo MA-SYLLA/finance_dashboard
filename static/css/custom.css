@@ -1,3 +1,17 @@
+.sidebar .nav-link {
+  font-size: 0.875rem;         /* taille texte constante */
+  white-space: nowrap;         /* empêche retour à la ligne */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.sidebar .nav-link i {
+  min-width: 20px;             /* espace fixe pour les icônes */
+  text-align: center;
+}
+
 .graph-layout {
     height: calc(100vh - 230px); /* ajustable selon hauteur navbar/footer */
     display: flex;
@@ -46,4 +60,17 @@
 .form-wrapper form {
     max-width: 800px;
     width: 100%;
+}
+
+.graph-left {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    align-items: center;
+    overflow-y: auto;
+    padding-bottom: 1rem;
+}
+
+.graph-left > p {
+    margin-top: auto;
 }

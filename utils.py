@@ -44,13 +44,17 @@ def get_solde_info(user, date_paie=None):
     total_revenus = sum(t.montant for t in transactions if t.montant > 0)
     total_depenses = abs(sum(t.montant for t in transactions if t.montant < 0))
     solde = total_revenus - total_depenses
+    
+    jours_restant = (end_date - today).days
+    prochaine_paie = end_date + timedelta(days=1)
+    decouvert = user.decouvert or 0
+    disponible_avec_decouvert = solde + decouvert
 
     return {
-        "start_date": start_date,
-        "end_date": end_date,
-        "total_revenus": round(total_revenus, 2),
-        "total_depenses": round(total_depenses, 2),
-        "solde": round(solde, 2)
+        "solde_actuel": round(solde, 2),
+        "disponible_avec_decouvert": round(disponible_avec_decouvert, 2),
+        "jours_restant": jours_restant,
+        "prochaine_paie": prochaine_paie.strftime("%d/%m/%Y")
     }
     
 def detecter_dates_paie(transactions_df, montant_min=1000):
