@@ -1,4 +1,4 @@
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark fixed-left" id="accordionSidebar" style="min-width: 220px;">
     <!-- Logo -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ url_for('home') }}">
         <div class="sidebar-brand-icon">
@@ -17,6 +17,11 @@
         </a>
     </li>
 
+    <hr class="sidebar-divider my-1" style="border-top: 1px solid rgba(255,255,255,0.5);">
+
+    <!-- Section : Données -->
+    <div class="sidebar-heading">Données</div>
+
     <!-- Transactions -->
     <li class="nav-item {% if active_page == 'transactions' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('transactions') }}">
@@ -33,19 +38,16 @@
         </a>
     </li>
 
+    <hr class="sidebar-divider my-1" style="border-top: 1px solid rgba(255,255,255,0.5);">
+
+    <!-- Section : Graphiques -->
+    <div class="sidebar-heading">Graphiques</div>
+
     <!-- Graphique par Compte -->
     <li class="nav-item {% if active_page == 'graph_par_compte' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_par_compte') }}">
             <i class="fas fa-chart-pie"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Graphique par Compte</span>
-        </a>
-    </li>
-
-    <!-- Dépenses par Catégorie -->
-    <li class="nav-item {% if active_page == 'graph_par_categorie_depenses' %}active{% endif %}">
-        <a class="nav-link" href="{{ url_for('graph_categorie_depenses') }}">
-            <i class="fas fa-arrow-down"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Dépenses par Catégorie</span>
+            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartion des capitaux</span>
         </a>
     </li>
 
@@ -53,15 +55,23 @@
     <li class="nav-item {% if active_page == 'graph_par_categorie_revenus' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_categorie_revenus') }}">
             <i class="fas fa-arrow-up"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Revenus par Catégorie</span>
+            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartition des revenus</span>
         </a>
     </li>
 
-    <!-- Évolution du Solde Calendrier -->
-    <li class="nav-item {% if active_page == 'graph_solde' %}active{% endif %}">
-        <a class="nav-link" href="{{ url_for('graph_solde') }}">
-            <i class="fas fa-chart-line"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Évolution du Solde Calendrier</span>
+    <!-- Dépenses par Catégorie -->
+    <li class="nav-item {% if active_page == 'graph_par_categorie_depenses' %}active{% endif %}">
+        <a class="nav-link" href="{{ url_for('graph_categorie_depenses') }}">
+            <i class="fas fa-arrow-down"></i>
+            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartition des dépenses</span>
+        </a>
+    </li>
+
+    <!-- Solde Interactif -->
+    <li class="nav-item {% if active_page == 'graph_solde_interactif' %}active{% endif %}">
+         <a class="nav-link" href="{{ url_for('graph_solde_interactif') }}">
+            <i class="fas fa-chart-area"></i>
+            <span class="sidebar-text">Solde bancaire réel</span>
         </a>
     </li>
 
@@ -69,16 +79,18 @@
     <li class="nav-item {% if active_page == 'graph_solde_paie' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_solde_paie') }}">
             <i class="fas fa-calendar"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Évolution du Solde Cycle de Paie</span>
+            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Solde par cycle de paie</span>
         </a>
     </li>
-
-    <hr class="sidebar-divider d-none d-md-block">
+   
+    <!-- Spacer pour pousser le bouton de déconnexion en bas -->
+    <div class="mt-auto"></div>
+    <hr class="sidebar-divider my-1" style="border-top: 3px solid rgba(255,255,255,0.5);">
 
     <!-- Déconnexion -->
     <li class="nav-item">
         <a class="nav-link text-danger" href="{{ url_for('logout') }}">
-            <i class="fas fa-sign-out-alt"></i>
+            <i class="fas fa-fw fa-sign-out-alt"></i>
             <span>Déconnexion</span>
         </a>
     </li>

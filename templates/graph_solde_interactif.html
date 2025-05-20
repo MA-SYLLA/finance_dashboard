@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Solde Interactif Amélioré{% endblock %}
+{% block content %}
+
+<h1 class="h3 text-center mb-4">Evolution du solde réel</h1>
+
+<!-- ✅ Carte fixée en haut à droite sans décaler le contenu -->
+<div style="position: absolute; top: 80px; right: 20px; z-index: 10; min-width: 250px;">
+  <div class="card shadow border-left-primary">
+    <div class="card-body">
+      <p class="mb-2"><strong>💰 Solde réel :</strong> {{ "%.2f"|format(solde_info.solde_reel) }} €</p>
+      <p class="mb-2"><strong>📉 Disponible avec découvert :</strong> {{ "%.2f"|format(solde_info.disponible_avec_decouvert) }} €</p>
+      <p class="mb-2"><strong>⏳ Jours restants :</strong> {{ solde_info.jours_restant }}</p>
+      <p class="mb-0"><strong>📅 Prochaine paie :</strong> {{ solde_info.prochaine_paie }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- 🔧 Formulaire + bouton reset alignés -->
+<div class="d-flex justify-content-center align-items-center gap-3 mb-3 flex-wrap">
+  <label for="scale" class="mb-0">Échelle :</label>
+  <select id="scale" class="form-select w-auto me-3">
+      <option value="day" selected>Jour</option>
+      <option value="month">Mois</option>
+      <option value="year">Année</option>
+  </select>
+  <button class="btn btn-outline-secondary btn-sm" onclick="resetZoom()">
+      🔄 Réinitialiser la vue
+  </button>
+</div>
+
+<!-- 📊 Graphique -->
+<div style="position: relative; height: 60vh; width: 100%; max-width: 100%;">
+    <canvas id="soldeChart" style="width: 100%; height: 100%;"></canvas>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0"></script>
+
+<script>
+// Fonction de regroupement
+function aggregateData(data, scale) {
+    const grouped = {};
+    data.forEach(point => {
+        const d = new Date(point.date);
+        let key;
+        if (scale === "year") {
+            key = d.getFullYear();
+        } else if (scale === "month") {
+            key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        } else {
+            key = point.date;
+        }
+        grouped[key] = point.solde;
+    });
+
+    const labels = Object.keys(grouped).sort();
+    const values = labels.map(k => grouped[k]);
+    return { labels, values };
+}
+
+const rawData = {{ data|tojson }};
+const discoveredLimit = {{ solde_info.disponible_avec_decouvert | round(2) }};
+let currentScale = 'day';
+let { labels, values } = aggregateData(rawData, currentScale);
+
+const ctx = document.getElementById('soldeChart').getContext('2d');
+
+let chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Solde (€)',
+                data: values,
+                borderColor: 'green',
+                backgroundColor: 'rgba(0,128,0,0.1)',
+                fill: true,
+                pointRadius: 2,
+                pointBackgroundColor: values.map((v, i) => i === 0 ? 'gray' : (v > values[i-1] ? 'green' : 'red')),
+                tension: 0.3
+            },
+            {
+                label: 'Découvert autorisé',
+                data: new Array(labels.length).fill(discoveredLimit),
+                borderColor: 'red',
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                type: 'time',
+                time: { unit: currentScale },
+                ticks: { maxRotation: 0 }
+            },
+            y: {
+                beginAtZero: false,
+                reverse: false,
+                suggestedMin: -1500,
+                suggestedMax: 1000,
+                ticks: {
+                    callback: value => value + ' €'
+                }
+            }
+        },
+        plugins: {
+            zoom: {
+                pan: { enabled: true, mode: 'x' },
+                zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+                limits: {
+                    y: { minRange: 100 }
+                }
+            }
+        }
+    }
+});
+
+document.getElementById('scale').addEventListener('change', function () {
+    currentScale = this.value;
+    const result = aggregateData(rawData, currentScale);
+    chart.data.labels = result.labels;
+    chart.data.datasets[0].data = result.values;
+    chart.data.datasets[0].pointBackgroundColor = result.values.map((v, i) => i === 0 ? 'gray' : (v > result.values[i-1] ? 'green' : 'red'));
+    chart.data.datasets[1].data = new Array(result.labels.length).fill(discoveredLimit);
+    chart.options.scales.x.time.unit = currentScale;
+    chart.update();
+});
+
+// Fonction pour réinitialiser le zoom
+function resetZoom() {
+    chart.resetZoom();
+}
+</script>
+
+{% endblock %}

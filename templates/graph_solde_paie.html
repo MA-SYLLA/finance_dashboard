@@ -2,7 +2,7 @@
 {% block title %}Évolution du Solde Cycle de Paie{% endblock %}
 {% block content %}
 
-<h1 class="h3 mb-4 text-gray-800 text-center">Évolution du Solde Cycle de Paie</h1>
+<h1 class="h3 mb-4 text-gray-800 text-center">Évolution du solde par cycle de Paie</h1>
 
 <form method="get" class="d-flex flex-wrap justify-content-center align-items-end gap-3 mb-4">
     <div>
@@ -22,11 +22,6 @@
             <option value="month" {% if time_scale == 'month' or not time_scale %}selected{% endif %}>Mois</option>
             <option value="year" {% if time_scale == 'year' %}selected{% endif %}>Année</option>
         </select>
-    </div>
-    <div class="form-check mt-4">
-        <input class="form-check-input" type="checkbox" name="cumul" id="cumul" value="true"
-               {% if cumul %}checked{% endif %}>
-        <label class="form-check-label" for="cumul">Afficher en cumul</label>
     </div>
     <div>
         <button type="submit" class="btn btn-primary">Filtrer</button>
@@ -48,10 +43,10 @@
     min-width: 240px;
     z-index: 1000;
 ">
-    <p>💰 <b>Solde actuel :</b> {{ "%.2f"|format(solde_info.solde_actuel) }} €</p>
-    <p>📉 <b>Reste autorisé (avec découvert) :</b> {{ solde_info.disponible_avec_decouvert }} €</p>
-    <p>📅 <b>Jours restants avant paie :</b> {{ solde_info.jours_restant }}</p>
-    <p>🗓️ <b>Prochaine paie :</b> {{ solde_info.prochaine_paie }}</p>
+    <p>💰 <b>Solde actuel :</b> {{ "%.2f"|format(solde_info["solde_actuel"]) }} €</p>
+    <p>📉 <b>Reste autorisé (avec découvert) :</b> {{ solde_info["disponible_avec_decouvert"] }} €</p>
+    <p>📅 <b>Jours restants avant paie :</b> {{ solde_info["jours_restant"] }}</p>
+    <p>🗓️ <b>Prochaine paie :</b> {{ solde_info["prochaine_paie"] }}</p>
 </div>
 {% endif %}
 
