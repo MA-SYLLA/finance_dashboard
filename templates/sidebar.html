@@ -1,4 +1,4 @@
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark fixed-left" id="accordionSidebar" style="min-width: 220px;">
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark fixed-left" id="accordionSidebar">
     <!-- Logo -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ url_for('home') }}">
         <div class="sidebar-brand-icon">
@@ -47,7 +47,7 @@
     <li class="nav-item {% if active_page == 'graph_par_compte' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_par_compte') }}">
             <i class="fas fa-chart-pie"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartion des capitaux</span>
+            <span class="sidebar-text">Répartion des capitaux</span>
         </a>
     </li>
 
@@ -55,7 +55,7 @@
     <li class="nav-item {% if active_page == 'graph_par_categorie_revenus' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_categorie_revenus') }}">
             <i class="fas fa-arrow-up"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartition des revenus</span>
+            <span class="sidebar-text">Répartition des revenus</span>
         </a>
     </li>
 
@@ -63,7 +63,7 @@
     <li class="nav-item {% if active_page == 'graph_par_categorie_depenses' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_categorie_depenses') }}">
             <i class="fas fa-arrow-down"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Répartition des dépenses</span>
+            <span class="sidebar-text">Répartition des dépenses</span>
         </a>
     </li>
 
@@ -79,7 +79,7 @@
     <li class="nav-item {% if active_page == 'graph_solde_paie' %}active{% endif %}">
         <a class="nav-link" href="{{ url_for('graph_solde_paie') }}">
             <i class="fas fa-calendar"></i>
-            <span class="sidebar-text" style="display: inline-block; white-space: normal; word-break: break-word;">Solde par cycle de paie</span>
+            <span class="sidebar-text">Solde par cycle de paie</span>
         </a>
     </li>
    

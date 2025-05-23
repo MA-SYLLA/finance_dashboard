@@ -6,9 +6,10 @@ from datetime import date
 import os
 import pandas as pd
 
-from models import db, User, Transaction, DatePaieConfirmee
+from models import db, User, Transaction, DatePaieConfirmee, SoldeHistorique
 from process_csv import process_csv
-from utils import get_solde_info, get_periode_budgetaire, detecter_dates_paie
+from utils import get_solde_info, get_periode_budgetaire, detecter_dates_paie, is_transaction_visible 
+from sqlalchemy import or_, not_
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -26,6 +27,8 @@ def inject_user():
 @app.route('/')
 def landing():
     return render_template('landing.html')
+
+from sqlalchemy import not_
 
 @app.route('/home')
 def home():
@@ -114,12 +117,15 @@ def home():
             start_date = today.replace(day=1)
             end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
-    transactions = Transaction.query.filter(
+    # 🔎 Exclure les ajustements automatiques
+    transactions_brutes = Transaction.query.filter(
         Transaction.user_id == user.id,
         Transaction.type_compte == "Compte Courant",
         Transaction.date >= start_date,
-        Transaction.date <= end_date
+        Transaction.date <= end_date,
     ).all()
+    
+    transactions = [t for t in transactions_brutes if is_transaction_visible(t)]
 
     total_transactions = len(transactions)
     total_revenus = sum(t.montant for t in transactions if t.montant > 0)
@@ -127,6 +133,10 @@ def home():
     solde = total_revenus - total_depenses
     decouvert = user.decouvert or 0
     solde_disponible = solde + decouvert
+    
+    # 🔐 Récupère le dernier solde réel importé (CSV)
+    solde_histo = SoldeHistorique.query.filter_by(user_id=user.id).order_by(SoldeHistorique.date.desc()).first()
+    solde_reel = solde_histo.solde if solde_histo else 0
 
     return render_template(
         'home.html',
@@ -136,6 +146,7 @@ def home():
         solde=round(solde, 2),
         decouvert=round(decouvert, 2),
         solde_disponible=round(solde_disponible, 2),
+        solde_reel=round(solde_reel, 2),
         user=user,
         active_page='home',
         start_date=start_date,
@@ -215,8 +226,13 @@ def transactions():
 
     user_email = session['user']['email']
     user = User.query.filter_by(email=user_email).first()
-    transactions = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
-
+    transactions = Transaction.query.filter(
+        Transaction.user_id == user.id,
+        or_(
+            Transaction.categorie != "Ajustement",
+            Transaction.categorie.is_(None)
+     )
+    ).order_by(Transaction.date.desc()).all()
     solde_info = get_solde_info(user)
 
     return render_template('transactions.html', transactions=transactions, solde_info=solde_info, active_page='transactions')
@@ -434,13 +450,7 @@ def graph_par_compte():
 
     # Exécution de la requête
     transactions = query.all()
-
-    # 🔍 Debug : transactions filtrées
-    print(">>> Filtres actifs :")
-    print("Start:", start_date_str, "| End:", end_date_str)
-    print(">>> Transactions filtrées :")
-    for t in transactions:
-        print(f"- {t.date} | {t.type_compte} | {t.montant}")
+    transactions = [t for t in transactions if is_transaction_visible(t)]
 
     # Agrégation des montants par compte (sans retraits pour le livrets)
     comptes = {}
@@ -453,11 +463,6 @@ def graph_par_compte():
     # 👉 Appliquer la règle spécifique au livret : pas de négatif
     if 'Livret' in comptes and comptes['Livret'] < 0:
          comptes['Livret'] = 0
-
-    # 🔍 Debug : totaux par compte
-    print(">>> Totaux par compte :")
-    for compte, total in comptes.items():
-        print(f"{compte}: {total:.2f}")
 
     # Données pour le graphique et le tableau
     labels = list(comptes.keys())
@@ -505,6 +510,7 @@ def graph_categorie_depenses():
             flash("Date de fin invalide", "warning")
 
     transactions = query.all()
+    transactions = [t for t in transactions if is_transaction_visible(t)]
     categories = set(t.categorie for t in transactions if t.categorie)
     labels = list(categories)
     values = [sum(t.montant for t in transactions if t.categorie == cat) for cat in categories]
@@ -552,6 +558,7 @@ def graph_categorie_revenus():
             flash("Date de fin invalide", "warning")
 
     transactions = query.all()
+    transactions = [t for t in transactions if is_transaction_visible(t)]
     categories = set(t.categorie for t in transactions if t.categorie)
     labels = list(categories)
     values = [sum(t.montant for t in transactions if t.categorie == cat) for cat in categories]
@@ -681,7 +688,6 @@ def graph_solde_interactif():
     data = []
     for t in transactions:
         solde += t.montant
-        print(f"{t.date} | {t.montant:+} € | solde = {solde:.2f} €")
         data.append({
             "date": t.date.strftime('%Y-%m-%d'),
             "solde": round(solde, 2)
@@ -692,12 +698,15 @@ def graph_solde_interactif():
         solde_info["solde_reel"] = data[-1]["solde"]
     else:
         solde_info["solde_reel"] = 0
+    
+    decouvert = user.decouvert or 0  # 🔹 récupère le découvert
 
     return render_template(
         'graph_solde_interactif.html',
         data=data,
         solde_info=solde_info,
         solde_reel=round(solde, 2),  # 👈 ajoute cette ligne
+        decouvert=decouvert,  # 🔹 passe la valeur au template
         active_page='graph_solde_interactif'
     )
     
