@@ -14,7 +14,10 @@ from sqlalchemy import or_, not_
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'finance.db')
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_path = os.path.join(basedir, 'finance.db')
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
