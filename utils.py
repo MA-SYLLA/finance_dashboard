@@ -2,8 +2,7 @@
 
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from models import Transaction
-from models import DatePaieConfirmee
+from models import Transaction, DatePaieConfirmee,SoldeHistorique
 import pandas as pd
 
 def get_solde_info(user, date_paie=None):
@@ -33,29 +32,26 @@ def get_solde_info(user, date_paie=None):
         start_date = today.replace(day=1)
         end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
-    # Requête filtrée
-    transactions = Transaction.query.filter(
-        Transaction.user_id == user.id,
-        Transaction.type_compte == "Compte Courant",
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    ).all()
+    # 💾 Solde réel enregistré lors du dernier import
+    solde_histo = SoldeHistorique.query.filter_by(user_id=user.id).order_by(SoldeHistorique.date.desc()).first()
+    solde_reel = solde_histo.solde if solde_histo else 0
 
-    total_revenus = sum(t.montant for t in transactions if t.montant > 0)
-    total_depenses = abs(sum(t.montant for t in transactions if t.montant < 0))
-    solde = total_revenus - total_depenses
-    
+    # 📉 Disponible = solde réel + découvert autorisé
+    decouvert = user.decouvert or 0
+    disponible_avec_decouvert = solde_reel + decouvert
+
+    # ⏳ Cycle de paie
     jours_restant = (end_date - today).days
     prochaine_paie = end_date + timedelta(days=1)
-    decouvert = user.decouvert or 0
-    disponible_avec_decouvert = solde + decouvert
 
     return {
-        "solde_actuel": round(solde, 2),
+        "solde_actuel": round(solde_reel, 2),  # utilisé dans les cartes
+        "solde_reel": round(solde_reel, 2),    # cohérence interne
         "disponible_avec_decouvert": round(disponible_avec_decouvert, 2),
         "jours_restant": jours_restant,
         "prochaine_paie": prochaine_paie.strftime("%d/%m/%Y")
     }
+
     
 def detecter_dates_paie(transactions_df, montant_min=1000):
     """
@@ -163,3 +159,7 @@ def detecter_dates_a_valider(user_id):
         })
 
     return suggestions
+
+
+def is_transaction_visible(t):
+    return t.categorie != "Ajustement"

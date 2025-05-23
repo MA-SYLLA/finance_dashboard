@@ -1,10 +1,19 @@
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-    <div class="container-fluid d-flex justify-content-end align-items-center">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+
+        <!-- ☰ Toggle Sidebar (mobile only) -->
+        <button class="btn btn-outline-primary d-md-none" id="toggleSidebar" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Message utilisateur -->
         {% if user %}
-            <span class="me-3 fw-bold text-gray-800 fade-in">Bonjour, {{ user['prenom'] }}</span>
+            <span class="fw-bold text-gray-800 fade-in">Bonjour, {{ user['prenom'] }}</span>
         {% endif %}
+
     </div>
 </nav>
+
 
 <!-- Petit style CSS pour effet fade-in -->
 <style>

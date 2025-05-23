@@ -31,6 +31,17 @@ class Transaction(db.Model):
     def __repr__(self):
         return f'<Transaction {self.libelle} - {self.montant} €>'
     
+    
+class SoldeHistorique(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    solde = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f'<SoldeHistorique {self.date} - {self.solde} €>'
+
+    
 class DatePaieConfirmee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
